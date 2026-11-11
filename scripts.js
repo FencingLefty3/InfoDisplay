@@ -29,3 +29,12 @@ export function clickColor () {
         })
     })
 }
+
+export function syncGradient() {
+  const w = window.innerWidth;
+  document.querySelectorAll('.clockDigit').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      el.style.setProperty('--gw', w + 'px');
+      el.style.setProperty('--gx', rect.left + 'px');
+  });
+}

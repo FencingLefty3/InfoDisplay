@@ -1,4 +1,4 @@
-import { loadColorButtons, clickColor } from './scripts.js';
+import { loadColorButtons, clickColor, syncGradient } from './scripts.js';
 
 function checkTime(i) {
   if (i < 10) {
@@ -73,6 +73,11 @@ document.getElementById('settingsDialog').addEventListener('click', (event) => {
       document.getElementById('settingsDialog').close();
     }
   });
+
+window.addEventListener('resize', syncGradient);
+window.addEventListener('orientationchange', syncGradient);
+document.fonts?.ready.then(syncGradient);
+syncGradient();
 window.addEventListener('mousemove', showAndResetTimer);
 window.addEventListener('pointerdown', showAndResetTimer);
 window.addEventListener('touchstart', showAndResetTimer);
@@ -81,3 +86,4 @@ showAndResetTimer()
 startTime()
 loadColorButtons()
 clickColor()
+requestFullscreen()

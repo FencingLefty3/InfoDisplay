@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
 * {
   font-family: "JetBrains Mono", "Space Mono", monospace;
     font-weight: 700;
@@ -9,10 +10,6 @@ h1 {
     display: flex;
     margin: 0;
     font-size: 25svw;
-    background: var(--theme-gradient, linear-gradient(0.25turn, #e68e66, #d15392));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 .clockChar {
     display: grid;
@@ -21,14 +18,21 @@ h1 {
     height: 1em;
     line-height: 1;
     background: url("flap.png") center / 100% 100% no-repeat;
-    z-index: -1;
 }
 .clockChar.flip {
     animation: flip 0.5s ease-in-out;
 }
 .clockDigit {
-    z-index: 2;
-    mix-blend-mode: screen;
+    height: 100%;
+    background-image: var(--theme-gradient, linear-gradient(0.25turn, #e68e66, #d15392));
+    background-size: var(--gw, 100vw) 100%;
+    background-position: calc(var(--gx, 0px) * -1) 0;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    
 }
 @keyframes flip {
     0%, 100% {
@@ -40,9 +44,6 @@ h1 {
     60% {
         transform: rotateX(0deg);
     }
-}
-.clockDigit {
-    transform: translateY(-0.04em);
 }
 body {
     width: 100dvw;
@@ -101,11 +102,11 @@ a {
     display: grid;
     place-items: center;
     box-sizing: border-box;
-    width: 2rem;
-    height: 2rem;
+    width: 3rem;
+    height: 3rem;
     padding: 0;
     border-radius: 50%;
-    border: 0.4rem solid #969696;
+    border: 0.6rem solid #969696;
     background: #c2c2c2;
     color: #fff;
     text-decoration: none;
@@ -114,7 +115,7 @@ a {
     transition: opacity 0.5s ease, display 0.5s ease allow-discrete;;
 }
 a:hover {
-    border: 0.4rem solid #787878;
+    border: 0.6rem solid #787878;
     background: #8e8e8e;
 }
 a.hidden {
