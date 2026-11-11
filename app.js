@@ -56,9 +56,17 @@ function startTime() {
 document.getElementById('settingsBtn').addEventListener('click', () => {
     document.getElementById('settingsDialog').showModal()
 })
+document.getElementById('fullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+  } else {
+    document.exitFullscreen()
+  }
+  
+})
 
 let idleTime = null;
-const hiddenItem = document.getElementById('settingsBtn')
+const hiddenItem = document.getElementById('hiddenButtons')
 
 function showAndResetTimer() {
   hiddenItem.classList.remove('hidden')
@@ -86,4 +94,3 @@ showAndResetTimer()
 startTime()
 loadColorButtons()
 clickColor()
-requestFullscreen()
