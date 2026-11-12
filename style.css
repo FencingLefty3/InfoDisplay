@@ -83,6 +83,14 @@ body {
     background: var(--theme-gradient, linear-gradient(0.25turn, #e68e66, #d15392));
     filter: contrast(50%) brightness(105%) saturate(80%);
 }
+.containerB#cycle::before {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    inset: 0;
+    background: var(--theme-gradient, linear-gradient(0.25turn, #0b1026, #2a1b4d));
+    filter: contrast(50%) brightness(105%) saturate(80%);
+}
 .containerC {
     width: 45%;
     height: 100%;
@@ -165,7 +173,7 @@ dialog {
     border: none;
     outline: none;
     background: #ffffff;
-    background: linear-gradient(180deg, rgba(51, 51, 51, 0.4) 0%, rgb(30, 30, 30) 100%);
+    background: linear-gradient(180deg, #33333373 20%, #333333 100%);
 }
 dialog:open {
     display: flex;
