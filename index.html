@@ -7,21 +7,48 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="containerA" id="doubleContainer" style="display: none;">
+    <div class="containerA" id="doubleContainer">
         <div class="containerC">
-            hu
+            <nav class="snapDots" aria-label="Left pane pages">
+                <button type="button" aria-label="Page 1" aria-current="true"></button>
+                <button type="button" aria-label="Page 2"></button>
+            </nav>
+            <div class="containerD" id="info">
+                <div id="infoTime">a</div>
+            </div>
+            <div class="containerD" id="info">
+                <div id="calendar">b</div>
+            </div>
         </div>
         <div class="containerC">
-            hi
+            <nav class="snapDots" aria-label="Right pane pages">
+                <button type="button" aria-label="Page 1" aria-current="true"></button>
+                <button type="button" aria-label="Page 2"></button>
+            </nav>
+            <div class="containerD" id="info">
+                <div id="calendar">c</div>
+            </div>
+            <div class="containerD" id="info">
+                <div id="calendar">d</div>
+            </div>
         </div>
     </div>
     <div class="containerA" id="singleContainer">
-        <!--<div class="containerB" id="gradient">
-            <div id="time"></div>
-        </div>-->
-        <div class="containerB" id="info">
-            <div id="time"></div>
+        <nav class="snapDots" aria-label="Info face pages">
+            <button type="button" aria-label="Page 1" aria-current="true"></button>
+            <button type="button" aria-label="Page 2"></button>
+            <button type="button" aria-label="Page 3"></button>
+        </nav>
+        <div class="containerB" id="gradient">
+            <div id="gradientTime"></div>
         </div>
+        <div class="containerB" id="info">
+            <div id="infoTime"></div>
+        </div>
+        <main id="board">
+
+        </main>
+        
     </div>
     <footer id="hiddenButtons">
         <a id="settingsBtn" href="#"></a>

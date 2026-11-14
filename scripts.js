@@ -1,133 +1,5 @@
 export function gradiantScript() {
      const selectedColor = 0
-
-     function loadColorButtons() {
-        
-        if (!colorRow) return;
-
-        colorRow.innerHTML = themeButtons.map(([index, color1, color2]) => `
-            <button type="button" name="color" class="colorCircle" data-set="${index}" style="background: linear-gradient(0.25turn, ${color1}, ${color2});;" aria-label="Theme Color Button"></button>
-        `).join("");
-    }
-     function clickColor () {
-        colorRow.querySelectorAll('.colorCircle').forEach((button) => {
-            button.addEventListener('click', () => {
-                console.log("test")
-                const [, color1, color2] = themeButtons[Number(button.dataset.set)];
-                document.documentElement.style.setProperty(
-                    '--theme-gradient',
-                    `linear-gradient(0.25turn, ${color1}, ${color2})`
-                )
-            })
-        })
-    }
-
-     function syncGradient() {
-    const w = window.innerWidth;
-    document.querySelectorAll('.clockDigit').forEach(el => {
-        const rect = el.getBoundingClientRect();
-        el.style.setProperty('--gw', w + 'px');
-        el.style.setProperty('--gx', rect.left + 'px');
-    });
-    }
-    function checkTime(i) {
-    if (i < 10) {
-        i = "0" + i;
-    }
-    return i;
-    }
-    function startTime() {
-    const today = new Date();
-    let hours = today.getHours();
-
-    const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
-    console.log(is12Hour)
-    let ampm = "";
-
-    if (is12Hour) {
-        ampm = hours >= 12 ? "" : "";
-        hours = hours % 12 || 12; // Converts 0 to 12 and 13-23 to 1-11
-    }
-
-    const text = `${checkTime(hours)}:${checkTime(today.getMinutes())}${ampm}`;
-    const time = document.getElementById("time");
-
-    time.setAttribute("aria-label", text);
-
-    if (time.children.length === 0) {
-        time.replaceChildren(
-        ...Array.from(text, (character) => {
-            const card = document.createElement("span");
-            card.className = "clockChar";
-
-            const digit = document.createElement("span");
-            digit.className = "clockDigit";
-            digit.textContent = character;
-
-            card.append(digit);
-            return card;
-        })
-        );
-    } else {
-        Array.from(time.children).forEach((card, index) => {
-        const digit = card.querySelector(".clockDigit");
-
-        if (digit.textContent !== text[index]) {
-            digit.textContent = text[index];
-            card.classList.remove("flip");
-            void card.offsetWidth; // Restart the animation for this changed character.
-            card.classList.add("flip");
-        }
-        });
-    }
-
-    setTimeout(startTime, 500);
-    }
-
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-        document.getElementById('settingsDialog').showModal()
-    })
-    document.getElementById('fullscreen').addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen()
-    } else {
-        document.exitFullscreen()
-    }
-    
-    })
-
-    let idleTime = null;
-    const hiddenItem = document.getElementById('hiddenButtons')
-
-    function showAndResetTimer() {
-    hiddenItem.classList.remove('hidden')
-    clearTimeout(idleTime)
-
-    idleTime = setTimeout(() => {
-        hiddenItem.classList.add('hidden')
-    }, 3000)
-    }
-    document.getElementById('settingsDialog').addEventListener('click', (event) => {
-        if (event.target === document.getElementById('settingsDialog')) {
-        document.getElementById('settingsDialog').close();
-        }
-    });
-
-    window.addEventListener('resize', syncGradient);
-    window.addEventListener('orientationchange', syncGradient);
-    document.fonts?.ready.then(syncGradient);
-    syncGradient();
-    window.addEventListener('mousemove', showAndResetTimer);
-    window.addEventListener('pointerdown', showAndResetTimer);
-    window.addEventListener('touchstart', showAndResetTimer);
-
-    showAndResetTimer()
-    startTime()
-    loadColorButtons()
-    clickColor()
-}
-export function gradiantInfo() {
-     const selectedColor = 0
     const colorRow = document.getElementById('colorRow')
     const themeButtons = [
         [0, "#e68e66", "#d15392"],
@@ -187,7 +59,7 @@ export function gradiantInfo() {
     }
 
     const text = `${checkTime(hours)}:${checkTime(today.getMinutes())}${ampm}`;
-    const time = document.getElementById("time");
+    const time = document.getElementById("gradientTime");
 
     time.setAttribute("aria-label", text);
 
@@ -200,6 +72,7 @@ export function gradiantInfo() {
             const digit = document.createElement("span");
             digit.className = "clockDigit";
             digit.textContent = character;
+            digit.id = "gradiant";
 
             card.append(digit);
             return card;
@@ -252,14 +125,227 @@ export function gradiantInfo() {
 
     window.addEventListener('resize', syncGradient);
     window.addEventListener('orientationchange', syncGradient);
+    window.addEventListener('scroll', syncGradient, true);
     document.fonts?.ready.then(syncGradient);
-    syncGradient();
     window.addEventListener('mousemove', showAndResetTimer);
     window.addEventListener('pointerdown', showAndResetTimer);
     window.addEventListener('touchstart', showAndResetTimer);
 
     showAndResetTimer()
     startTime()
+    requestAnimationFrame(syncGradient);
     loadColorButtons()
     clickColor()
+}
+export function infoScript() {
+    const ASPECT = 0.72;        // flap width / height, same as your flap.png tile
+    const MIN_COLS = 16;        // longest line is "PRESIDENTS DAY" (14) plus margin
+    const TARGET_ROWS = 8;      // used on landscape screens
+
+    const board = document.getElementById('board');
+    const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
+    const pad2 = (i) => String(i).padStart(2, '0');
+
+    let rows = 0, cols = 0, cells = [], filled = false;
+
+
+    const params = new URLSearchParams(location.search);
+    const TEST = params.has('test');
+    const FAKE = TEST || params.has('date') || params.has('time');
+    const PAGE_MS = TEST ? 4000 : 8000;      // how long each page stays on the two lines
+
+    const simStart = (() => {
+        const d = new Date();
+        const date = params.get('date');     // YYYY-MM-DD
+        if (date) { const [y, m, dd] = date.split('-').map(Number); d.setFullYear(y, m - 1, dd); }
+        const time = params.get('time');     // HH:MM
+        if (time) { const [h, mi] = time.split(':').map(Number); d.setHours(h, mi, 0, 0); }
+        return d;
+    })();
+    const realStart = Date.now();
+
+    function getNow() {
+        if (!FAKE) return new Date();
+        const elapsed = Date.now() - realStart;
+        return new Date(simStart.getTime() + elapsed * (TEST ? 60 : 1));   // test: 1 minute per second
+    }
+
+    let page = 0;
+    // ---------- grid ----------
+    function buildGrid() {
+        const W = board.clientWidth, H = board.clientHeight;
+        rows = TARGET_ROWS;
+        cols = Math.floor(W / ((H / rows) * ASPECT));
+        if (cols < MIN_COLS) {                       // narrow screens (phones in portrait)
+            cols = MIN_COLS;
+            rows = Math.max(1, Math.floor(H / (W / cols / ASPECT)));
+        }
+        const cw = W / cols, ch = H / rows;
+        board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        board.style.fontSize = Math.min(ch, cw / ASPECT) + 'px';
+
+        board.replaceChildren(...Array.from({ length: rows * cols }, () => {
+            const card = document.createElement('span');
+            card.className = 'clockChar';
+            const digit = document.createElement('span');
+            digit.className = 'clockDigit';
+            digit.textContent = ' ';
+            card.append(digit);
+            return card;
+        }));
+        cells = Array.from(board.children);
+        filled = false;                              // next render is instant
+    }
+
+    const CHARS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./';
+    const STEP_MS = 70;       // time for each flap
+    const MAX_STEPS = 12;     // flaps before landing; set to CHARS.length for the full waterfall
+
+    function setCell(card, ch, delay, instant) {
+        const digit = card.firstChild;
+        const current = card._target ?? digit.textContent;
+        if (current === ch) return;                  // already there, or already heading there
+
+        card._target = ch;
+        const run = (card._run = (card._run || 0) + 1);   // cancels any cycle still in progress
+
+        if (instant) { digit.textContent = ch; return; }
+
+        const len = CHARS.length;
+        const from = Math.max(0, CHARS.indexOf(digit.textContent));
+        const to = Math.max(0, CHARS.indexOf(ch));
+        const dist = (to - from + len) % len;
+        let k = Math.min(dist, MAX_STEPS);           // flaps left to show
+
+        function next() {
+            if (card._run !== run || k === 0) return;
+            const shown = CHARS[(to - (k - 1) + len) % len];
+
+            card.style.animation = 'none';
+            void card.offsetWidth;
+            card.style.animation = `flip ${STEP_MS}ms linear`;
+            setTimeout(() => {
+                if (card._run === run) digit.textContent = shown;   // swap at the flip's midpoint
+            }, STEP_MS * 0.4);
+
+            k--;
+            setTimeout(next, STEP_MS);
+        }
+        setTimeout(next, delay);
+    }
+
+    // lines (an array of strings, '' = spacer) -> placed and centered on the grid
+    function render(lines) {
+        let list = lines;
+        if (list.length > rows) list = list.filter((l) => l !== '');
+        list = list.slice(0, rows);
+        const top = Math.floor((rows - list.length) / 2);
+
+        for (let r = 0; r < rows; r++) {
+            let s = (list[r - top] ?? '').toUpperCase().slice(0, cols);
+            s = ' '.repeat(Math.floor((cols - s.length) / 2)) + s;
+            s = s.padEnd(cols);
+            for (let c = 0; c < cols; c++) {
+                setCell(cells[r * cols + c], s[c], c * 30 + r * 15, !filled);
+            }
+        }
+        filled = true;
+    }
+
+    // ---------- content ----------
+    function nthWeekday(y, m, wd, n) {              // n = -1 for the last one
+        if (n > 0) {
+            const first = new Date(y, m, 1).getDay();
+            return 1 + ((wd - first + 7) % 7) + (n - 1) * 7;
+        }
+        const last = new Date(y, m + 1, 0);
+        return last.getDate() - ((last.getDay() - wd + 7) % 7);
+    }
+    function holidaysFor(y) {
+        return [
+            [0, 1, 'NEW YEARS DAY'],
+            [0, nthWeekday(y, 0, 1, 3), 'MLK DAY'],
+            [1, 14, 'VALENTINES'],
+            [1, nthWeekday(y, 1, 1, 3), 'PRESIDENTS DAY'],
+            [4, nthWeekday(y, 4, 1, -1), 'MEMORIAL DAY'],
+            [5, 19, 'JUNETEENTH'],
+            [6, 4, 'JULY 4TH'],
+            [8, nthWeekday(y, 8, 1, 1), 'LABOR DAY'],
+            [9, nthWeekday(y, 9, 1, 2), 'COLUMBUS DAY'],
+            [9, 31, 'HALLOWEEN'],
+            [10, 11, 'VETERANS DAY'],
+            [10, nthWeekday(y, 10, 4, 4), 'THANKSGIVING'],
+            [11, 25, 'CHRISTMAS'],
+            [11, 31, 'NEW YEARS EVE'],
+        ].map(([m, d, name]) => ({ date: new Date(y, m, d), name }));
+    }
+    function nextHoliday(now) {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const y = now.getFullYear();
+        const next = [...holidaysFor(y), ...holidaysFor(y + 1)].find((h) => h.date >= today);
+        return { name: next.name, days: Math.round((next.date - today) / 864e5) };
+    }
+
+    function tick() {
+        const now = getNow();
+        let hours = now.getHours();
+        let suffix = '';
+        if (is12Hour) {
+            suffix = hours >= 12 ? 'p' : 'a';
+            hours = hours % 12 || 12;
+        }
+        const timeText = `${pad2(hours)}:${pad2(now.getMinutes())}${suffix}`;
+        board.setAttribute('aria-label', timeText);
+
+        const mon = now.toLocaleDateString('en-US', { month: 'short' });
+        const h = nextHoliday(now);
+
+        // each page is the two lines that rotate; add more pages here
+        const pages = [
+            [now.toLocaleDateString('en-US', { weekday: 'long' }), `${mon} ${now.getDate()} ${now.getFullYear()}`],
+            [h.name, h.days === 0 ? 'TODAY' : h.days === 1 ? 'TOMORROW' : `IN ${h.days} DAYS`],
+        ];
+
+        render([timeText, '', ...pages[page % pages.length]]);
+    }
+
+    buildGrid();
+    tick();
+    setInterval(tick, 1000);
+    setInterval(() => { page++; tick(); }, PAGE_MS);
+
+    let resizeTimer = null;
+    function onResize() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { buildGrid(); tick(); }, 150);
+    }
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+
+    // ---------- your existing UI code ----------
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+        document.getElementById('settingsDialog').showModal();
+    });
+    document.getElementById('fullscreen').addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+    });
+
+    let idleTime = null;
+    const hiddenItem = document.getElementById('hiddenButtons');
+    function showAndResetTimer() {
+        hiddenItem.classList.remove('hidden');
+        clearTimeout(idleTime);
+        idleTime = setTimeout(() => hiddenItem.classList.add('hidden'), 3000);
+    }
+    document.getElementById('settingsDialog').addEventListener('click', (event) => {
+        if (event.target === document.getElementById('settingsDialog')) {
+            document.getElementById('settingsDialog').close();
+        }
+    });
+    window.addEventListener('mousemove', showAndResetTimer);
+    window.addEventListener('pointerdown', showAndResetTimer);
+    window.addEventListener('touchstart', showAndResetTimer);
+    showAndResetTimer();
 }
