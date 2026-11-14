@@ -21,7 +21,6 @@ export function gradiantScript() {
      function clickColor () {
         colorRow.querySelectorAll('.colorCircle').forEach((button) => {
             button.addEventListener('click', () => {
-                console.log("test")
                 const [, color1, color2] = themeButtons[Number(button.dataset.set)];
                 document.documentElement.style.setProperty(
                     '--theme-gradient',
@@ -50,7 +49,6 @@ export function gradiantScript() {
     let hours = today.getHours();
 
     const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
-    console.log(is12Hour)
     let ampm = "";
 
     if (is12Hour) {
@@ -137,10 +135,81 @@ export function gradiantScript() {
     loadColorButtons()
     clickColor()
 }
+export function plainScript() {
+    const w = window.innerWidth;
+    document.querySelectorAll('.clockDigit').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--gw', w + 'px');
+        el.style.setProperty('--gx', rect.left + 'px');
+    });
+
+    function checkTime(i) {
+        if (i < 10) {
+            i = "0" + i;
+        }
+        return i;
+    }
+
+    function startTime() {
+        const today = new Date();
+        let hours = today.getHours();
+
+        const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
+        let ampm = "";
+
+        if (is12Hour) {
+            ampm = hours >= 12 ? "" : "";
+            hours = hours % 12 || 12; // Converts 0 to 12 and 13-23 to 1-11
+        }
+
+        const text = `${checkTime(hours)}:${checkTime(today.getMinutes())}${ampm}`;
+        const time = document.getElementById("plainTime");
+
+        time.setAttribute("aria-label", text);
+
+        if (time.children.length === 0) {
+            time.replaceChildren(
+                ...Array.from(text, (character) => {
+                    if (character === ":") {
+                        const card = document.createElement("br");
+                        card.style = "flex-basis: 100%;height: 0;";
+                        return card;
+                    } else {
+                        const card = document.createElement("span");
+                        card.className = "clockChar";
+
+                        const digit = document.createElement("span");
+                        digit.className = "clockDigit";
+                        digit.textContent = character;
+                        digit.id = "plain";
+
+                        card.append(digit);
+                        return card;
+                    }})
+            );
+        } else {
+            Array.from(time.children).forEach((card, index) => {
+                const digit = card.querySelector(".clockDigit");
+
+                if (digit.textContent !== text[index]) {
+                    digit.textContent = text[index];
+                    card.classList.remove("flip");
+                    void card.offsetWidth;
+                    card.classList.add("flip");
+                }
+            });
+        }
+
+        setTimeout(startTime, 500);
+    }
+
+    startTime();
+}
+
 export function infoScript() {
-    const ASPECT = 0.72;        // flap width / height, same as your flap.png tile
-    const MIN_COLS = 16;        // longest line is "PRESIDENTS DAY" (14) plus margin
-    const TARGET_ROWS = 8;      // used on landscape screens
+    const ASPECT = 0.72;        
+    const MIN_COLS = 16;        
+    const TARGET_ROWS = 8;      
 
     const board = document.getElementById('board');
     const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
@@ -152,13 +221,13 @@ export function infoScript() {
     const params = new URLSearchParams(location.search);
     const TEST = params.has('test');
     const FAKE = TEST || params.has('date') || params.has('time');
-    const PAGE_MS = TEST ? 4000 : 8000;      // how long each page stays on the two lines
+    const PAGE_MS = TEST ? 4000 : 8000;      
 
     const simStart = (() => {
         const d = new Date();
-        const date = params.get('date');     // YYYY-MM-DD
+        const date = params.get('date');     
         if (date) { const [y, m, dd] = date.split('-').map(Number); d.setFullYear(y, m - 1, dd); }
-        const time = params.get('time');     // HH:MM
+        const time = params.get('time');     
         if (time) { const [h, mi] = time.split(':').map(Number); d.setHours(h, mi, 0, 0); }
         return d;
     })();
@@ -167,7 +236,7 @@ export function infoScript() {
     function getNow() {
         if (!FAKE) return new Date();
         const elapsed = Date.now() - realStart;
-        return new Date(simStart.getTime() + elapsed * (TEST ? 60 : 1));   // test: 1 minute per second
+        return new Date(simStart.getTime() + elapsed * (TEST ? 60 : 1)); 
     }
 
     let page = 0;
@@ -176,7 +245,7 @@ export function infoScript() {
         const W = board.clientWidth, H = board.clientHeight;
         rows = TARGET_ROWS;
         cols = Math.floor(W / ((H / rows) * ASPECT));
-        if (cols < MIN_COLS) {                       // narrow screens (phones in portrait)
+        if (cols < MIN_COLS) {                       
             cols = MIN_COLS;
             rows = Math.max(1, Math.floor(H / (W / cols / ASPECT)));
         }
@@ -195,20 +264,20 @@ export function infoScript() {
             return card;
         }));
         cells = Array.from(board.children);
-        filled = false;                              // next render is instant
+        filled = false;                             
     }
 
     const CHARS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./';
-    const STEP_MS = 70;       // time for each flap
-    const MAX_STEPS = 12;     // flaps before landing; set to CHARS.length for the full waterfall
+    const STEP_MS = 70;     
+    const MAX_STEPS = 12;    
 
     function setCell(card, ch, delay, instant) {
         const digit = card.firstChild;
         const current = card._target ?? digit.textContent;
-        if (current === ch) return;                  // already there, or already heading there
+        if (current === ch) return;                  
 
         card._target = ch;
-        const run = (card._run = (card._run || 0) + 1);   // cancels any cycle still in progress
+        const run = (card._run = (card._run || 0) + 1);   
 
         if (instant) { digit.textContent = ch; return; }
 
@@ -216,7 +285,7 @@ export function infoScript() {
         const from = Math.max(0, CHARS.indexOf(digit.textContent));
         const to = Math.max(0, CHARS.indexOf(ch));
         const dist = (to - from + len) % len;
-        let k = Math.min(dist, MAX_STEPS);           // flaps left to show
+        let k = Math.min(dist, MAX_STEPS);           
 
         function next() {
             if (card._run !== run || k === 0) return;
@@ -226,7 +295,7 @@ export function infoScript() {
             void card.offsetWidth;
             card.style.animation = `flip ${STEP_MS}ms linear`;
             setTimeout(() => {
-                if (card._run === run) digit.textContent = shown;   // swap at the flip's midpoint
+                if (card._run === run) digit.textContent = shown;   
             }, STEP_MS * 0.4);
 
             k--;
@@ -235,7 +304,7 @@ export function infoScript() {
         setTimeout(next, delay);
     }
 
-    // lines (an array of strings, '' = spacer) -> placed and centered on the grid
+    
     function render(lines) {
         let list = lines;
         if (list.length > rows) list = list.filter((l) => l !== '');
@@ -254,7 +323,7 @@ export function infoScript() {
     }
 
     // ---------- content ----------
-    function nthWeekday(y, m, wd, n) {              // n = -1 for the last one
+    function nthWeekday(y, m, wd, n) {            
         if (n > 0) {
             const first = new Date(y, m, 1).getDay();
             return 1 + ((wd - first + 7) % 7) + (n - 1) * 7;
@@ -301,7 +370,7 @@ export function infoScript() {
         const mon = now.toLocaleDateString('en-US', { month: 'short' });
         const h = nextHoliday(now);
 
-        // each page is the two lines that rotate; add more pages here
+       
         const pages = [
             [now.toLocaleDateString('en-US', { weekday: 'long' }), `${mon} ${now.getDate()} ${now.getFullYear()}`],
             [h.name, h.days === 0 ? 'TODAY' : h.days === 1 ? 'TOMORROW' : `IN ${h.days} DAYS`],
@@ -323,7 +392,7 @@ export function infoScript() {
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
 
-    // ---------- your existing UI code ----------
+    
     document.getElementById('settingsBtn').addEventListener('click', () => {
         document.getElementById('settingsDialog').showModal();
     });
