@@ -1027,8 +1027,8 @@ export function batteryScript() {
         const pct = Math.round(b.level * 100);
         const full = b.charging && pct >= 100;
         const status = full ? 'FULL'
-            : b.charging ? 'CHARGING'
-            : pct <= 20 ? 'LOW BATTERY'
+            : b.charging ? 'CHARG -ING'
+            : pct <= 20 ? 'LOW BATT'
             : 'ON BATT';
 
         let extra = '';
