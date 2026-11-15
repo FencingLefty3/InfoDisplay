@@ -137,6 +137,20 @@ function updatePaneDots(scroller) {
   });
 }
 
+function syncPaneDots(scroller) {
+  const dots = dotsOf(scroller);
+  if (!dots) return;
+
+  const currentPage = currentPageOf(scroller);
+  dots.replaceChildren(...pagesOf(scroller).map((_, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('aria-label', `Page ${index + 1}`);
+    if (index === currentPage) button.setAttribute('aria-current', 'true');
+    return button;
+  }));
+}
+
 horizontalEvents.addEventListener('scroll', () => {
   schedulePositionSave();
   showScrollUi(horizontalScroller);
@@ -151,6 +165,7 @@ scrollers.slice(1).forEach((scroller) => {
 
 
 scrollers.slice(1).forEach((scroller) => {
+  syncPaneDots(scroller);
   const dots = dotsOf(scroller);
   if (!dots) return;
 
