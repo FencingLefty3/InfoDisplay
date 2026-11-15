@@ -139,36 +139,31 @@ export function plainScript() {
         }
 
         const text = `${checkTime(hours)}:${checkTime(today.getMinutes())}${ampm}`;
+        const digits = text.replace(":", "");
         const time = document.getElementById("plainTime");
 
         time.setAttribute("aria-label", text);
 
         if (time.children.length === 0) {
             time.replaceChildren(
-                ...Array.from(text, (character) => {
-                    if (character === ":") {
-                        const card = document.createElement("span");
-                        return card;
-                    } else {
-                        const card = document.createElement("span");
-                        card.className = "clockChar";
+                ...Array.from(digits, (character) => {
+                    const card = document.createElement("span");
+                    card.className = "clockChar";
 
-                        const digit = document.createElement("span");
-                        digit.className = "clockDigit";
-                        digit.textContent = character;
-                        digit.id = "plain";
+                    const digit = document.createElement("span");
+                    digit.className = "clockDigit";
+                    digit.textContent = character;
+                    digit.id = "plain";
 
-                        card.append(digit);
-                        return card;
-                    }})
+                    card.append(digit);
+                    return card;
+                })
             );
         } else {
             Array.from(time.children).forEach((card, index) => {
                 const digit = card.querySelector(".clockDigit");
-                if (!digit) return;                      // the colon spacer has no digit
-
-                if (digit.textContent !== text[index]) {
-                    digit.textContent = text[index];
+                if (digit.textContent !== digits[index]) {
+                    digit.textContent = digits[index];
                     card.classList.remove("flip");
                     void card.offsetWidth;
                     card.classList.add("flip");
