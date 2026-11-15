@@ -1027,7 +1027,7 @@ export function batteryScript() {
         const pct = Math.round(b.level * 100);
         const full = b.charging && pct >= 100;
         const status = full ? 'FULL'
-            : b.charging ? 'CHARG -ING'
+            : b.charging ? 'CHARG ING'
             : pct <= 20 ? 'LOW BATT'
             : 'ON BATT';
 
@@ -1042,7 +1042,7 @@ export function batteryScript() {
     }
 
     function unsupported() {
-        current = ['NO BATTERY', 'DATA AVAILABLE'];
+        current = ['NO BATT', 'DATA AVAIL'];
         draw();
     }
 
