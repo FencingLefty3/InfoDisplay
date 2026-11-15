@@ -277,6 +277,7 @@ export function phaseScript() {
 
     let coords = null;
     let sun = null;                           // { offset, events: [{ label, iso }] }
+    let sunDisplayMode = 0;
 
     // ---------- content ----------
     function moonText() {
@@ -284,9 +285,7 @@ export function phaseScript() {
         return n === 'NEW' || n === 'FULL' ? `${n} MOON` : n;
     }
 
-    function formatTime(iso) {                // "2026-11-15T16:30" -> " 4:30P" or "16:30"
-        if (!iso) return is12Hour ? '--:-- ' : '--:--';
-        let [h, m] = iso.slice(11, 16).split(':').map(Number);
+    function formatClockTime(h, m) {
         const mm = String(m).padStart(2, '0');
         if (!is12Hour) return `${String(h).padStart(2, '0')}:${mm}`;
         const suffix = h >= 12 ? 'P' : 'A';
@@ -294,11 +293,28 @@ export function phaseScript() {
         return `${String(h).padStart(2, ' ')}:${mm}${suffix}`;
     }
 
+    function formatTime(iso) {
+        if (!iso) return is12Hour ? '--:-- ' : '--:--';
+        const [h, m] = iso.slice(11, 16).split(':').map(Number);
+        return formatClockTime(h, m);
+    }
+
+    function currentSunTime() {
+        const now = sun ? new Date(Date.now() + sun.offset * 1000) : new Date();
+        return sun
+            ? formatClockTime(now.getUTCHours(), now.getUTCMinutes())
+            : formatClockTime(now.getHours(), now.getMinutes());
+    }
+
     function nextEvent() {
         if (!sun) return null;
+        if (sunDisplayMode === 2) return null;
         // the API's times are local to the place, so compare against the place's own "now"
         const placeNow = Date.now() + sun.offset * 1000;
-        return sun.events.find((e) => Date.parse(e.iso + 'Z') > placeNow) ?? null;
+        const label = sunDisplayMode === 0 ? 'RISE' : 'SET';
+        return sun.events.find((event) =>
+            event.label === label && Date.parse(event.iso + 'Z') > placeNow
+        ) ?? null;
     }
 
     // ---------- rows ----------
@@ -310,8 +326,14 @@ export function phaseScript() {
 
     function sunParts() {
         const ev = nextEvent();
+        if (sunDisplayMode === 2) {
+            return [
+                { text: 'SUN', word: true },
+                ...Array.from(currentSunTime(), (c) => ({ text: c, colon: c === ':' })),
+            ];
+        }
         return [
-            { text: ev ? ev.label : 'SUN', word: true },
+            { text: sunDisplayMode === 0 ? 'RISE' : 'SET', word: true },
             ...Array.from(formatTime(ev?.iso), (c) => ({ text: c, colon: c === ':' })),
         ];
     }
@@ -355,7 +377,10 @@ export function phaseScript() {
         renderRow(moonTopRow, topParts, moonText());
         renderRow(moonBottomRow, bottomParts, '');
         const ev = nextEvent();
-        renderRow(sunRow, sunParts(), ev ? `${ev.label} ${formatTime(ev.iso).trim()}` : 'sun');
+        const ariaLabel = sunDisplayMode === 2
+            ? `SUN ${currentSunTime().trim()}`
+            : `${sunDisplayMode === 0 ? 'RISE' : 'SET'} ${ev ? formatTime(ev.iso).trim() : '--:--'}`;
+        renderRow(sunRow, sunParts(), ariaLabel);
     }
 
     // ---------- data ----------
@@ -392,7 +417,10 @@ export function phaseScript() {
     render();                                 // moon and dashes appear straight away
     load();
     setInterval(load, 3 * 60 * 60 * 1000);    // refetch every few hours
-    setInterval(render, 30 * 1000);           // re-check which event is next, and the moon
+    setInterval(() => {
+        sunDisplayMode = (sunDisplayMode + 1) % 3;
+        render();
+    }, 8 * 1000);
 }
 
 export function infoScript() {
