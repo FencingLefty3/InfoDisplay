@@ -1037,7 +1037,7 @@ export function batteryScript() {
     }
 
     function unsupported() {
-        current = ['NO BATT', 'DATA AVAIL'];
+        current = ['NOT AVAIL', 'BATT DATA'];
         draw();
     }
 
