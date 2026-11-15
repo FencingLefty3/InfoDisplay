@@ -79,6 +79,13 @@ h1 {
     gap: 0.25em;
     font-size: min(calc(100cqw / 7), calc(100cqh / 2.3));
 }
+#battery {
+    display: grid;
+    grid-template-columns: repeat(14, 0.72em);   /* 14 flaps wide */
+    grid-auto-rows: 1em;                         /* 3 rows tall */
+    gap: 0.05em;
+    justify-content: center;
+}
 #calendar {
     display: flex;
     flex-direction: column;
@@ -144,6 +151,7 @@ h1 {
     justify-content: center;
     cursor: pointer;
 }
+
 #eventDialog {
     height: max-content;          /* overrides the short bottom-sheet height of your other dialog */
 }

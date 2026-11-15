@@ -586,9 +586,6 @@ export function infoScript() {
     window.addEventListener('orientationchange', onResize);
 
     
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-        document.getElementById('settingsDialog').showModal();
-    });
     document.getElementById('fullscreen').addEventListener('click', () => {
         if (!document.fullscreenElement) document.documentElement.requestFullscreen();
         else document.exitFullscreen();
@@ -943,4 +940,134 @@ function readZones() {
 
     refresh();
     setInterval(() => show(lines()), 1000);
+}
+export function batteryScript() {
+    const COLS = 6, ROWS = 3;
+
+    const root = document.getElementById('battery')
+    if (!root) {
+        console.log('batteryScript: missing getElementById HTML')
+        return;
+    }
+
+
+    root.replaceChildren(...Array.from({ length: ROWS * COLS }, () => {
+        root.style.gridTemplateColumns = `repeat(${COLS}, 0.72em)`;
+        const card = document.createElement('span');
+        card.className = 'clockChar'
+        const digit = document.createElement('span')
+        digit.className = 'clockDigit'
+        digit.textContent = ' '
+        card.append(digit)
+        return card;
+    }))
+    const cells = Array.from(root.children)
+    let filled = false
+    
+    function setCell(card, ch, delay) {
+        const digit = card.firstChild
+        if (digit.textContent === ch) return
+        if (!filled) { digit.textContent = ch; return; }
+        card.style.animationDelay = delay + 'ms'
+        card.classList.remove('flip')
+        void card.offsetWidth
+        card.classList.add('flip')
+        setTimeout(() => { digit.textContent = ch; }, delay + 200)
+    }
+
+    function show(lines) {
+        const list = lines.slice(0, ROWS)
+        const top = Math.floor((ROWS - list.length) / 2)
+        for (let r = 0; r < ROWS; r++) {
+            let s = (list[r - top] ?? '').slice(0, COLS)
+            s = ' '.repeat(Math.floor((COLS - s.length) / 2)) + s;
+            s = s.padEnd(COLS)
+            for (let c = 0; c < COLS; c++) setCell(cells[r * COLS + c], s[c], c * 30 + r * 15)
+        }
+        filled = true;
+    }
+
+    const PAGE_MS = 2500;                 // how long each piece stays up
+    let current = [];                     // the full text of each line
+    let page = 0;
+
+    // split one line of text into pieces of at most COLS characters
+    function frames(text) {
+        const out = [];
+        let line = '';
+        for (const word of text.split(' ').filter(Boolean)) {
+            let w = word;
+            while (w.length > COLS) {                         // a single word wider than the board
+                if (line) { out.push(line); line = ''; }
+                out.push(w.slice(0, COLS));
+                w = w.slice(COLS);
+            }
+            if (!line) line = w;
+            else if ((line + ' ' + w).length <= COLS) line += ' ' + w;
+            else { out.push(line); line = w; }
+        }
+        if (line) out.push(line);
+        return out.length ? out : [''];
+    }
+
+    function draw() {
+        show(current.map((text) => {
+            const f = frames(text);
+            return f[page % f.length];                        // one-piece lines never change
+        }));
+    }
+
+    function fmtTime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return h ? `${h}H ${m}M` : `${m}M`;
+    }
+
+    function render(b) {
+        const pct = Math.round(b.level * 100);
+        const full = b.charging && pct >= 100;
+        const status = full ? 'FULL'
+            : b.charging ? 'CHARGING'
+            : pct <= 20 ? 'LOW BATTERY'
+            : 'ON BATT';
+
+        let extra = '';
+        if (b.charging && !full && isFinite(b.chargingTime) && b.chargingTime > 0) {
+            extra = `FULL IN ${fmtTime(b.chargingTime)}`;
+        } else if (!b.charging && isFinite(b.dischargingTime) && b.dischargingTime > 0) {
+            extra = `${fmtTime(b.dischargingTime)} LEFT`;
+        }
+        current = [`${pct}%`, status, extra].filter(Boolean);
+        draw();
+    }
+
+    function unsupported() {
+        current = ['NO BATTERY', 'DATA AVAILABLE'];
+        draw();
+    }
+
+    if (!('getBattery' in navigator)) {
+        unsupported()
+    } else {
+        navigator.getBattery().then((battery) => {
+            const update = () => render(battery);
+            ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange']
+                .forEach((type) => battery.addEventListener(type, update))
+            update()
+        }).catch(unsupported)
+    }
+    setInterval(() => { page++; draw(); }, PAGE_MS);
+
+    const box = root.parentElement
+    function fit() {
+        const cs = getComputedStyle(box)
+        const w = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+        const h = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+        const widthEm = COLS * 0.72 + (COLS - 1) * 0.05
+        const heightEm = ROWS + (ROWS - 1) * 0.05
+        root.style.fontSize = Math.min(w / widthEm, h / heightEm) + 'px'
+    }
+    new ResizeObserver(fit).observe(box)
+    fit()
+    
 }

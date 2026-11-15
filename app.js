@@ -1,32 +1,28 @@
-import { gradiantScript, infoScript, plainScript, dateScript, eventScript, phaseScript, worldClockScript } from './scripts.js';
+import { gradiantScript, infoScript, plainScript, dateScript, eventScript, phaseScript, worldClockScript, batteryScript } from './scripts.js';
 
 
 function setupChrome() {
   const settingsDialog = document.getElementById('settingsDialog');
+  const worldDialog = document.getElementById('worldDialog');
+  const eventDialog = document.getElementById('eventDialog');
   const hiddenItem = document.getElementById('hiddenButtons');
   const settingsButton = document.getElementById('settingsBtn');
-  const gradientFace = document.getElementById('gradient');
-
-  function isGradientFaceActive() {
-    const paneBounds = verticalScroller.getBoundingClientRect();
-    const gradientPage = pagesOf(verticalScroller).indexOf(gradientFace);
-    return Math.abs(paneBounds.left) < window.innerWidth * 0.01 &&
-      gradientPage >= 0 &&
-      currentPageOf(verticalScroller) === gradientPage;
-  }
+  const doubleContainer = document.getElementById('doubleContainer');
+  const eventRoot = document.getElementById('event');
+  const worldClock = document.getElementById('worldClock');
 
   function updateSettingsVisibility() {
-    const active = isGradientFaceActive();
-    settingsButton?.classList.toggle('face-hidden', !active);
-    if (!active && settingsDialog?.open) settingsDialog.close();
+    const activeDialog = getActiveEditorDialog();
+    settingsButton?.classList.toggle('face-hidden', !activeDialog);
+    [settingsDialog, worldDialog, eventDialog].forEach((dialog) => {
+      if (dialog?.open && dialog !== activeDialog) dialog.close();
+    });
   }
 
   settingsButton?.addEventListener('click', (event) => {
-    if (!isGradientFaceActive()) {
-      event.preventDefault();
-      return;
-    }
-    if (!settingsDialog.open) settingsDialog.showModal();
+    event.preventDefault();
+    const dialog = getActiveEditorDialog();
+    if (dialog && !dialog.open) dialog.showModal();
   });
   document.getElementById('fullscreen')?.addEventListener('click', () => {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen();
@@ -44,10 +40,33 @@ function setupChrome() {
   };
   ['mousemove', 'pointerdown', 'touchstart'].forEach((type) => window.addEventListener(type, wake));
   wake();
-  verticalScroller.addEventListener('scroll', updateSettingsVisibility);
+  scrollers.slice(1).forEach((scroller) => {
+    scroller.addEventListener('scroll', updateSettingsVisibility);
+  });
   horizontalEvents.addEventListener('scroll', updateSettingsVisibility);
   window.addEventListener('resize', updateSettingsVisibility);
   updateSettingsVisibility();
+
+  function getActiveEditorDialog() {
+    const isFaceVisible = (face) =>
+      Math.abs(face.getBoundingClientRect().left) < window.innerWidth * 0.01;
+
+    if (isFaceVisible(verticalScroller)) {
+      const page = pagesOf(verticalScroller)[currentPageOf(verticalScroller)];
+      if (page?.contains(document.getElementById('gradient'))) return settingsDialog;
+      if (page?.contains(worldClock)) return worldDialog;
+    }
+
+    if (isFaceVisible(doubleContainer)) {
+      const eventPane = eventRoot?.closest('.containerC');
+      if (eventPane) {
+        const page = pagesOf(eventPane)[currentPageOf(eventPane)];
+        if (page?.contains(eventRoot)) return eventDialog;
+      }
+    }
+
+    return null;
+  }
 }
 
 
@@ -165,7 +184,7 @@ document.addEventListener('visibilitychange', () => {
 setupChrome();
 
 
-[gradiantScript, infoScript, plainScript, dateScript, phaseScript, eventScript, worldClockScript].forEach((init) => {
+[gradiantScript, infoScript, plainScript, dateScript, phaseScript, eventScript, worldClockScript, batteryScript].forEach((init) => {
   try {
     init();
   } catch (error) {
