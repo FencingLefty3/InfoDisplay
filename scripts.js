@@ -171,8 +171,7 @@ export function plainScript() {
             time.replaceChildren(
                 ...Array.from(text, (character) => {
                     if (character === ":") {
-                        const card = document.createElement("br");
-                        card.style = "flex-basis: 100%;height: 0;";
+                        const card = document.createElement("span");
                         return card;
                     } else {
                         const card = document.createElement("span");
