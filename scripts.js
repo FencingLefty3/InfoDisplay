@@ -1,6 +1,5 @@
 export function gradiantScript() {
-     const selectedColor = 0
-    const colorRow = document.getElementById('colorRow')
+    const colorRow = document.getElementById('colorRow');
     const themeButtons = [
         [0, "#e68e66", "#d15392"],
         [1, "#FDBB2D", "#3A1C71"],
@@ -9,25 +8,36 @@ export function gradiantScript() {
         [4, "#333333", "#c997c9"],
 
     ];
+    const savedColor = Number(localStorage.getItem('themeColor'));
+    const selectedColor = themeButtons.some(([index]) => index === savedColor) ? savedColor : 0;
 
-     function loadColorButtons() {
-        
+    function applyColor(index, save = false) {
+        const theme = themeButtons.find(([themeIndex]) => themeIndex === index);
+        if (!theme) return;
+
+        const [, color1, color2] = theme;
+        document.documentElement.style.setProperty(
+            '--theme-gradient',
+            `linear-gradient(0.25turn, ${color1}, ${color2})`
+        );
+        if (save) localStorage.setItem('themeColor', String(index));
+        colorRow?.querySelectorAll('.colorCircle').forEach((button) => {
+            button.setAttribute('aria-pressed', String(Number(button.dataset.set) === index));
+        })
+    }
+
+    function loadColorButtons() {
         if (!colorRow) return;
 
         colorRow.innerHTML = themeButtons.map(([index, color1, color2]) => `
-            <button type="button" name="color" class="colorCircle" data-set="${index}" style="background: linear-gradient(0.25turn, ${color1}, ${color2});;" aria-label="Theme Color Button"></button>
+            <button type="button" name="color" class="colorCircle" data-set="${index}" style="background: linear-gradient(0.25turn, ${color1}, ${color2});" aria-label="Theme Color Button"></button>
         `).join("");
-    }
-     function clickColor () {
         colorRow.querySelectorAll('.colorCircle').forEach((button) => {
             button.addEventListener('click', () => {
-                const [, color1, color2] = themeButtons[Number(button.dataset.set)];
-                document.documentElement.style.setProperty(
-                    '--theme-gradient',
-                    `linear-gradient(0.25turn, ${color1}, ${color2})`
-                )
-            })
-        })
+                applyColor(Number(button.dataset.set), true);
+            });
+        });
+        applyColor(selectedColor);
     }
 
      function syncGradient() {
@@ -92,48 +102,14 @@ export function gradiantScript() {
     setTimeout(startTime, 500);
     }
 
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-        document.getElementById('settingsDialog').showModal()
-    })
-    document.getElementById('fullscreen').addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen()
-    } else {
-        document.exitFullscreen()
-    }
-    
-    })
-
-    let idleTime = null;
-    const hiddenItem = document.getElementById('hiddenButtons')
-
-    function showAndResetTimer() {
-    hiddenItem.classList.remove('hidden')
-    clearTimeout(idleTime)
-
-    idleTime = setTimeout(() => {
-        hiddenItem.classList.add('hidden')
-    }, 3000)
-    }
-    document.getElementById('settingsDialog').addEventListener('click', (event) => {
-        if (event.target === document.getElementById('settingsDialog')) {
-        document.getElementById('settingsDialog').close();
-        }
-    });
-
     window.addEventListener('resize', syncGradient);
     window.addEventListener('orientationchange', syncGradient);
     window.addEventListener('scroll', syncGradient, true);
     document.fonts?.ready.then(syncGradient);
-    window.addEventListener('mousemove', showAndResetTimer);
-    window.addEventListener('pointerdown', showAndResetTimer);
-    window.addEventListener('touchstart', showAndResetTimer);
 
-    showAndResetTimer()
     startTime()
     requestAnimationFrame(syncGradient);
     loadColorButtons()
-    clickColor()
 }
 export function plainScript() {
     const w = window.innerWidth;

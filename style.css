@@ -402,7 +402,7 @@ footer {
     justify-content: center;
     gap: 0.4rem;
     box-sizing: border-box;
-    width: 6rem;
+    width: max-content;
     height: 3rem;
     padding: 0.4rem;
     border-radius: 8px;
@@ -421,6 +421,9 @@ a#settingsBtn {
     text-decoration: none;
     font-size: 2rem;
     line-height: 1;
+}
+a#settingsBtn.face-hidden {
+    display: none;
 }
 a#fullscreen {
     aspect-ratio: 1 / 1;

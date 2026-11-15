@@ -4,8 +4,28 @@ import { gradiantScript, infoScript, plainScript, dateScript, eventScript, phase
 function setupChrome() {
   const settingsDialog = document.getElementById('settingsDialog');
   const hiddenItem = document.getElementById('hiddenButtons');
+  const settingsButton = document.getElementById('settingsBtn');
+  const gradientFace = document.getElementById('gradient');
 
-  document.getElementById('settingsBtn')?.addEventListener('click', () => {
+  function isGradientFaceActive() {
+    const paneBounds = verticalScroller.getBoundingClientRect();
+    const gradientPage = pagesOf(verticalScroller).indexOf(gradientFace);
+    return Math.abs(paneBounds.left) < window.innerWidth * 0.01 &&
+      gradientPage >= 0 &&
+      currentPageOf(verticalScroller) === gradientPage;
+  }
+
+  function updateSettingsVisibility() {
+    const active = isGradientFaceActive();
+    settingsButton?.classList.toggle('face-hidden', !active);
+    if (!active && settingsDialog?.open) settingsDialog.close();
+  }
+
+  settingsButton?.addEventListener('click', (event) => {
+    if (!isGradientFaceActive()) {
+      event.preventDefault();
+      return;
+    }
     if (!settingsDialog.open) settingsDialog.showModal();
   });
   document.getElementById('fullscreen')?.addEventListener('click', () => {
@@ -24,6 +44,10 @@ function setupChrome() {
   };
   ['mousemove', 'pointerdown', 'touchstart'].forEach((type) => window.addEventListener(type, wake));
   wake();
+  verticalScroller.addEventListener('scroll', updateSettingsVisibility);
+  horizontalEvents.addEventListener('scroll', updateSettingsVisibility);
+  window.addEventListener('resize', updateSettingsVisibility);
+  updateSettingsVisibility();
 }
 
 
