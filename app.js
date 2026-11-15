@@ -1,4 +1,4 @@
-import { gradiantScript, infoScript, plainScript } from './scripts.js';
+import { gradiantScript, infoScript, plainScript, dateScript } from './scripts.js';
 
 const currentFace = 'info';
 const horizontalScroller = document.body;
@@ -115,6 +115,7 @@ window.addEventListener('pagehide', saveFacePosition);
 gradiantScript();
 infoScript();
 plainScript();
+dateScript();
 
 requestAnimationFrame(() => {
   if (Number.isFinite(savedHorizontalPosition)) {

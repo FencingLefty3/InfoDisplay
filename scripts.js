@@ -204,6 +204,59 @@ export function plainScript() {
 
     startTime();
 }
+export function dateScript() {
+    const container = document.getElementById('plainDate');
+
+    function getParts() {
+        const now = new Date();
+        const date = String(now.getDate()).padStart(2, '0');
+        return [
+            { text: now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(), word: true },  // SUN
+            { text: now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(), word: true },    // NOV
+            { text: " "     },
+            { text: date[0] },                                                                          // 1
+            { text: date[1] },                                                                          // 5
+        ];
+    }
+
+    function buildCard({ text, word }) {
+        if (text === " ") {
+            const card = document.createElement("span");
+            return card;
+        } else {
+            const card = document.createElement('span');
+            card.className = word ? 'clockChar word' : 'clockChar';
+
+            const digit = document.createElement('span');
+            digit.className = 'clockDigit';
+            digit.textContent = text;
+
+            card.append(digit);
+            return card;
+        }}
+
+    function update() {
+        const parts = getParts();
+        container.setAttribute('aria-label', `${parts[0].text} ${parts[1].text} ${parts[2].text}${parts[3].text}`);
+
+        if (container.children.length !== parts.length) {
+            container.replaceChildren(...parts.map(buildCard));
+            return;
+        }
+
+        Array.from(container.children).forEach((card, i) => {
+            const digit = card.firstChild;
+            if (digit.textContent === parts[i].text) return;
+            card.classList.remove('flip');
+            void card.offsetWidth;                                   // restart the animation
+            card.classList.add('flip');
+            setTimeout(() => { digit.textContent = parts[i].text; }, 200);   // swap at the flip's midpoint
+        });
+    }
+
+    update();
+    setInterval(update, 1000);
+}
 
 export function infoScript() {
     const ASPECT = 0.72;        
