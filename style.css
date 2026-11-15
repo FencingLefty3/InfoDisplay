@@ -47,7 +47,7 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 0.25em;
-    font-size: min(calc(100cqw /7), calc(100cqh / 2.3));
+    font-size: min(calc(100cqw / 7), calc(100cqh / 2.3));
 }
 #calendar {
     display: flex;
@@ -105,6 +105,32 @@ h1 {
     -webkit-text-fill-color: transparent;
     color: transparent;
     
+}
+#event {
+    display: grid;
+    grid-template-columns: repeat(12, 0.72em);   /* 12 flaps wide */
+    grid-auto-rows: 1em;                         /* 3 rows tall */
+    gap: 0.05em;
+    justify-content: center;
+    cursor: pointer;
+}
+#eventDialog {
+    height: auto;          /* overrides the short bottom-sheet height of your other dialog */
+}
+#eventForm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+#eventForm input,
+#eventForm button {
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.5rem 0.8rem;
+    border: none;
+    border-radius: 8px;
 }
 #board {
     display: grid;

@@ -607,3 +607,129 @@ export function infoScript() {
     window.addEventListener('touchstart', showAndResetTimer);
     showAndResetTimer();
 }
+export function eventScript() {
+    const COLS = 12, ROWS = 3
+    const PAGE_MS = 5000;
+    const KEY_NAME = 'event:name', KEY_TIME = 'event:time'
+
+    const root = document.getElementById('event')
+    const dialog = document.getElementById('eventDialog')
+    const form = document.getElementById('eventForm')
+    const nameInput = document.getElementById('eventNameInput')
+    const timeInput = document.getElementById('eventTimeInput')
+
+
+    root.replaceChildren(...Array.from({ length: ROWS * COLS }, () => {
+        const card = document.createElement('span');
+        card.className = 'clockChar';
+        const digit = document.createElement('span');
+        digit.className = 'clockDigit';
+        digit.textContent = ' ';
+        card.append(digit);
+        return card;
+    }));
+    
+    const cells = Array.from(root.children);
+    let filled = false
+
+    function setCell(card, ch, delay) {
+        const digit = card.firstChild;
+        if (digit.textContent === ch) return;
+        if (!filled) { digit.textContent = ch; return; }
+        card.style.animationDelay = delay + 'ms';
+        card.classList.remove('flip')
+        void card.offsetWidth
+        card.classList.add('flip')
+        setTimeout(() => { digit.textContent = ch; }, delay + 200)
+    }
+
+    function show(lines) {
+        const list = lines.slice(0, ROWS)
+        const top = Math.floor((ROWS - list.length) / 2)
+        for (let r = 0; r < ROWS; r++) {
+            let s = (list[r - top] ?? '').slice(0, COLS)
+            s = ' '.repeat(Math.floor((COLS - s.length) / 2)) + s;
+            s = s.padEnd(COLS)
+            for (let c = 0; c < COLS; c++) setCell(cells[r * COLS + c], s[c], c * 30 + r * 15);
+        }
+        filled = true;
+    }
+
+
+    function wrap(text) {
+        const lines = [];
+        let line = '';
+        for (const w of text.toUpperCase().split(/\s+/).filter(Boolean)) {
+            const word = w.slice(0, COLS);
+            if (!line) line = word;
+            else if ((line + ' ' + word).length <= COLS) line += ' ' + word;
+            else { lines.push(line); line = word; }
+        }
+        if (line) lines.push(line);
+        return lines.slice(0, ROWS);
+    }
+
+    function untilLines(target) {
+        let s = Math.floor((target - Date.now()) / 1000);
+        if (s <= 0) return ['CURRENTLY'];
+        const d = Math.floor(s / 86400); s -= d * 86400;
+        const h = Math.floor(s / 3600); s -= h * 3600;
+        const m = Math.floor(s / 60); s -= m * 60;
+        if (d > 0) return ['IN', `${d} ${d === 1 ? 'DAY' : 'DAYS'}`, `${h}H ${m}M`]
+        if (h > 0) return ['IN', `${h}H ${m}M`, `${s}S`]
+        return ['IN', `${m}M ${s}S`];
+    }
+
+    function getEvent() {
+        const name = localStorage.getItem(KEY_NAME);
+        const time = localStorage.getItem(KEY_TIME);
+        if (!name || !time) return null;
+        const t = new Date(time);
+        return isNaN(t) ? null : { name, t };
+    }
+
+    let page = 0
+    function tick() {
+        const ev = getEvent()
+        if (!ev) return show(['CLICK TO ADD', 'AN EVENT'])
+        show(page % 2 === 0 ? wrap(ev.name) : untilLines(ev.t))
+    }
+
+    tick()
+    setInterval(tick, 1000)
+    setInterval(() => { page++; tick(); }, PAGE_MS)
+
+
+
+    root.addEventListener('click', () => {
+        nameInput.value = localStorage.getItem(KEY_NAME) ?? '';
+        timeInput.value = localStorage.getItem(KEY_TIME) ?? '';
+        dialog.showModal();
+    })
+    form.addEventListener('submit', (e)  => {
+        e.preventDefault()
+        localStorage.setItem(KEY_NAME, nameInput.value.trim())
+        localStorage.setItem(KEY_TIME, timeInput.value)
+        page = 0
+        dialog.close()
+        tick()
+    })
+    document.getElementById('eventClear').addEventListener('click', () => {
+        localStorage.removeItem(KEY_NAME)
+        localStorage.removeItem(KEY_TIME)
+        dialog.close()
+        tick()
+    })
+    document.getElementById('eventCancel').addEventListener('click', () => dialog.close())
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close() })
+    
+    const box = root.parentElement
+    function fit() {
+        const cs = getComputedStyle(box)
+        const w = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+        const h = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+        root.style.fontSize = Math.min(w / 9.3, h / 3.2) + 'px';
+    }
+    new ResizeObserver(fit).observe(box)
+    fit()
+}

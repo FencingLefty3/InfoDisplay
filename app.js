@@ -1,29 +1,65 @@
-import { gradiantScript, infoScript, plainScript, dateScript, phaseScript } from './scripts.js';
+import { gradiantScript, infoScript, plainScript, dateScript, eventScript, phaseScript } from './scripts.js';
 
-const currentFace = 'info';
-const horizontalScroller = document.body;
+
+function setupChrome() {
+  const settingsDialog = document.getElementById('settingsDialog');
+  const hiddenItem = document.getElementById('hiddenButtons');
+
+  document.getElementById('settingsBtn')?.addEventListener('click', () => {
+    if (!settingsDialog.open) settingsDialog.showModal();
+  });
+  document.getElementById('fullscreen')?.addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  settingsDialog?.addEventListener('click', (event) => {
+    if (event.target === settingsDialog) settingsDialog.close();
+  });
+
+  let idleTimeout;
+  const wake = () => {
+    hiddenItem?.classList.remove('hidden');
+    clearTimeout(idleTimeout);
+    idleTimeout = setTimeout(() => hiddenItem?.classList.add('hidden'), 3000);
+  };
+  ['mousemove', 'pointerdown', 'touchstart'].forEach((type) => window.addEventListener(type, wake));
+  wake();
+}
+
+
+const pageScrolls = getComputedStyle(document.documentElement).overflowX === 'visible';
+const horizontalScroller = pageScrolls ? document.scrollingElement : document.body;
+const horizontalEvents = pageScrolls ? window : document.body;
 const verticalScroller = document.getElementById('singleContainer');
 const paneScrollers = Array.from(document.querySelectorAll('.containerC'));
+const scrollers = [horizontalScroller, verticalScroller, ...paneScrollers];
+
+const pagesOf = (scroller) =>
+  Array.from(scroller.children).filter((child) => child.matches('.containerB, .containerD, #board'));
+const dotsOf = (scroller) =>
+  Array.from(scroller.children).find((child) => child.matches('.snapDots'));
+const currentPageOf = (scroller) => {
+  const pages = pagesOf(scroller);
+  if (!pages.length || !scroller.clientHeight) return 0;
+  return Math.min(pages.length - 1, Math.round(scroller.scrollTop / scroller.clientHeight));
+};
+
+
 const savedHorizontalPosition = Number(localStorage.getItem('faceScrollX'));
 const savedVerticalPosition = Number(localStorage.getItem('faceScrollY'));
 const savedPanePages = paneScrollers.map((_, index) =>
   Number(localStorage.getItem(`doublePanePage${index}`))
 );
-const scrollers = [horizontalScroller, verticalScroller, ...paneScrollers];
 
-let saveScheduled = false;
-let scrollUiTimeout;
 function saveFacePosition() {
   localStorage.setItem('faceScrollX', horizontalScroller.scrollLeft);
   localStorage.setItem('faceScrollY', verticalScroller.scrollTop);
   paneScrollers.forEach((scroller, index) => {
-    localStorage.setItem(
-      `doublePanePage${index}`,
-      Math.round(scroller.scrollTop / scroller.clientHeight)
-    );
+    localStorage.setItem(`doublePanePage${index}`, currentPageOf(scroller));
   });
 }
 
+let saveScheduled = false;
 function schedulePositionSave() {
   if (saveScheduled) return;
   saveScheduled = true;
@@ -33,6 +69,8 @@ function schedulePositionSave() {
   });
 }
 
+
+let scrollUiTimeout;
 function showScrollUi(activeScroller) {
   scrollers.forEach((scroller) => {
     scroller.classList.toggle(
@@ -46,7 +84,21 @@ function showScrollUi(activeScroller) {
   }, 3000);
 }
 
-scrollers.forEach((scroller) => {
+function updatePaneDots(scroller) {
+  const dots = dotsOf(scroller);
+  if (!dots || pagesOf(scroller).length === 0) return;
+  const currentPage = currentPageOf(scroller);
+  Array.from(dots.querySelectorAll('button')).forEach((button, index) => {
+    if (index === currentPage) button.setAttribute('aria-current', 'true');
+    else button.removeAttribute('aria-current');
+  });
+}
+
+horizontalEvents.addEventListener('scroll', () => {
+  schedulePositionSave();
+  showScrollUi(horizontalScroller);
+});
+scrollers.slice(1).forEach((scroller) => {
   scroller.addEventListener('scroll', () => {
     schedulePositionSave();
     showScrollUi(scroller);
@@ -54,55 +106,23 @@ scrollers.forEach((scroller) => {
   });
 });
 
-function updatePaneDots(scroller) {
-  const pages = Array.from(scroller.children).filter((child) =>
-    child.matches('.containerB, .containerD, #board')
-  );
-  const dots = Array.from(scroller.children).find((child) =>
-    child.matches('.snapDots')
-  );
-  if (!dots || pages.length === 0) return;
-
-  const currentPage = Math.min(
-    pages.length - 1,
-    Math.round(scroller.scrollTop / scroller.clientHeight)
-  );
-
-  Array.from(dots.querySelectorAll('button')).forEach((button, index) => {
-    if (index === currentPage) {
-      button.setAttribute('aria-current', 'true');
-    } else {
-      button.removeAttribute('aria-current');
-    }
-  });
-}
 
 scrollers.slice(1).forEach((scroller) => {
-  const dots = Array.from(scroller.children).find((child) =>
-    child.matches('.snapDots')
-  );
+  const dots = dotsOf(scroller);
   if (!dots) return;
 
   dots.addEventListener('click', (event) => {
     const button = event.target.closest('button');
     if (!button) return;
-
-    const pages = Array.from(scroller.children).filter((child) =>
-      child.matches('.containerB, .containerD, #board')
-    );
     const index = Array.from(dots.querySelectorAll('button')).indexOf(button);
-    if (index < 0 || !pages[index]) return;
-
-    scroller.scrollTo({
-      top: pages[index].offsetTop,
-      behavior: 'smooth',
-    });
+    const page = pagesOf(scroller)[index];
+    if (page) scroller.scrollTo({ top: page.offsetTop, behavior: 'smooth' });
   });
   updatePaneDots(scroller);
 });
 
 function showHoveredScrollUi(event) {
-  const activeScroller = event.target.closest('.containerC, #singleContainer') || horizontalScroller;
+  const activeScroller = event.target.closest?.('.containerC, #singleContainer') || horizontalScroller;
   showScrollUi(activeScroller);
 }
 window.addEventListener('pointermove', showHoveredScrollUi);
@@ -110,13 +130,24 @@ window.addEventListener('pointerdown', showHoveredScrollUi);
 window.addEventListener('touchstart', showHoveredScrollUi);
 window.addEventListener('wheel', showHoveredScrollUi, { passive: true });
 window.addEventListener('keydown', showHoveredScrollUi);
-window.addEventListener('pagehide', saveFacePosition);
 
-gradiantScript();
-infoScript();
-plainScript();
-dateScript();
-phaseScript();
+
+window.addEventListener('pagehide', saveFacePosition);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveFacePosition();
+});
+
+
+setupChrome();
+
+
+[gradiantScript, infoScript, plainScript, dateScript, phaseScript, eventScript].forEach((init) => {
+  try {
+    init();
+  } catch (error) {
+    console.error(`${init.name} failed to start`, error);
+  }
+});
 
 
 requestAnimationFrame(() => {
@@ -127,14 +158,11 @@ requestAnimationFrame(() => {
     verticalScroller.scrollTop = savedVerticalPosition;
   }
   paneScrollers.forEach((scroller, index) => {
+    const pages = pagesOf(scroller);
     const savedPage = savedPanePages[index];
-    if (!Number.isFinite(savedPage)) return;
-
-    const pages = Array.from(scroller.children).filter((child) =>
-      child.matches('.containerD')
-    );
+    if (!pages.length || !Number.isFinite(savedPage)) return;
     const page = pages[Math.min(Math.max(savedPage, 0), pages.length - 1)];
-    if (page) scroller.scrollTop = page.offsetTop;
+    scroller.scrollTop = page.offsetTop;
     updatePaneDots(scroller);
   });
 });

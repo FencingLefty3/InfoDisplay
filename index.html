@@ -29,7 +29,7 @@
                 <div id="phase"></div>
             </div>
             <div class="containerD" id="info">
-                <div id="calendar"></div>
+                <div id="event"></div>
             </div>
         </div>
     </div>
@@ -55,7 +55,16 @@
         <a id="fullscreen" href="#">&#9974;</a>
     </footer>
 </body>
-
+<dialog id="eventDialog">
+    <h2>Event</h2>
+    <form id="eventForm">
+        <input id="eventNameInput" type="text" maxlength="36" placeholder="Event name" required>
+        <input id="eventTimeInput" type="datetime-local" required>
+        <button type="submit">Save</button>
+        <button type="button" id="eventClear">Clear</button>
+        <button type="button" id="eventCancel">Cancel</button>
+    </form>
+</dialog>
 <dialog id="settingsDialog">
     <h2>Color</h2>
     <div id="colorRow" class="row">
