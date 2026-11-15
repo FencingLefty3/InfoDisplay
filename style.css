@@ -20,7 +20,37 @@ h1 {
     justify-content: center;
     flex-wrap: wrap;
 }
-
+#worldClock {
+    display: grid;
+    grid-template-columns: repeat(14, 0.72em);   /* 14 flaps wide */
+    grid-auto-rows: 1em;
+    gap: 0.05em;
+    justify-content: center;
+}
+#worldClock { cursor: pointer; }
+#worldDialog { height: max-content; }
+#worldForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+#worldPickers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+}
+.worldButtons { display: flex; gap: 0.6rem; }
+#worldForm select,
+#worldForm button {
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.5rem 0.8rem;
+    border: none;
+    border-radius: 8px;
+}
 #plainDate {
     display: flex;
     margin: 0;
@@ -115,7 +145,7 @@ h1 {
     cursor: pointer;
 }
 #eventDialog {
-    height: auto;          /* overrides the short bottom-sheet height of your other dialog */
+    height: max-content;          /* overrides the short bottom-sheet height of your other dialog */
 }
 #eventForm {
     display: flex;

@@ -737,3 +737,210 @@ export function eventScript() {
     new ResizeObserver(fit).observe(box)
     fit()
 }
+export function worldClockScript() {
+    const MAX_ROWS = 4;
+    const COLS = 14
+    const KEY = 'worldClock:zones'
+    const DEFAULTS = ['America/New_York', 'Europe/London', 'Asia/Tokyo']
+
+    const CITIES = [                                   // [label up to 5 characters, name in the picker, IANA zone]
+        ['ANC', 'Anchorage', 'America/Anchorage'],
+        ['VAN', 'Vancouver', 'America/Vancouver'],
+        ['HNL', 'Honolulu', 'Pacific/Honolulu'],
+        ['LAX', 'Los Angeles', 'America/Los_Angeles'],
+        ['DEN', 'Denver', 'America/Denver'],
+        ['CHI', 'Chicago', 'America/Chicago'],
+        ['NYC', 'New York', 'America/New_York'],
+        ['YYZ', 'Toronto', 'America/Toronto'],
+        ['MEX', 'Mexico City', 'America/Mexico_City'],
+        ['SAO', 'Sao Paulo', 'America/Sao_Paulo'],
+        ['LON', 'London', 'Europe/London'],
+        ['PAR', 'Paris', 'Europe/Paris'],
+        ['BER', 'Berlin', 'Europe/Berlin'],
+        ['ROM', 'Rome', 'Europe/Rome'],
+        ['MAD', 'Madrid', 'Europe/Madrid'],
+        ['ATH', 'Athens', 'Europe/Athens'],
+        ['IST', 'Istanbul', 'Europe/Istanbul'],
+        ['MOW', 'Moscow', 'Europe/Moscow'],
+        ['CAI', 'Cairo', 'Africa/Cairo'],
+        ['LOS', 'Lagos', 'Africa/Lagos'],
+        ['NBO', 'Nairobi', 'Africa/Nairobi'],
+        ['JNB', 'Johannesburg', 'Africa/Johannesburg'],
+        ['DXB', 'Dubai', 'Asia/Dubai'],
+        ['DEL', 'Delhi', 'Asia/Kolkata'],
+        ['DAC', 'Dhaka', 'Asia/Dhaka'],
+        ['BKK', 'Bangkok', 'Asia/Bangkok'],
+        ['SIN', 'Singapore', 'Asia/Singapore'],
+        ['HKG', 'Hong Kong', 'Asia/Hong_Kong'],
+        ['SHA', 'Shanghai', 'Asia/Shanghai'],
+        ['SEL', 'Seoul', 'Asia/Seoul'],
+        ['TYO', 'Tokyo', 'Asia/Tokyo'],
+        ['SYD', 'Sydney', 'Australia/Sydney'],
+        ['AKL', 'Auckland', 'Pacific/Auckland'],
+        ['UTC', 'UTC', 'UTC'],
+    ];
+
+    const root = document.getElementById('worldClock')
+    const dialog = document.getElementById('worldDialog')
+    const form = document.getElementById('worldForm')
+    const pickers = document.getElementById('worldPickers')
+    if (![root, dialog, form, pickers].every(Boolean)) {
+        console.warn('worldClockScript: Missing elementsBy id; HTML')
+        return;
+    }
+
+    const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const hourOptions = is12Hour ? { hour12: true } : { hourCycle: 'h23' }
+    const dayFormat = { year: 'numeric', month: '2-digit', day: '2-digit'}
+    const localDay = new Intl.DateTimeFormat('en-CA', dayFormat)
+
+
+function readZones() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(KEY));
+            if (Array.isArray(saved)) {
+                return saved
+                    .filter((z) => typeof z === 'string')
+                    .map((z) => z === 'Amercia/New_Yourk' ? 'America/New_York' : z)
+                    .slice(0, MAX_ROWS);
+            }
+        } catch { /* fall through to the defaults */ }
+        return DEFAULTS;
+    }
+
+    function entryFor(value) {                         // value is an IANA zone, or 'local' for this device
+        const tz = value === 'local' ? localTz : value;
+        try {
+            const city = CITIES.find((c) => c[2] === value);
+            return {
+                label: value === 'local' ? 'HOME'
+                    : city ? city[0]
+                    : value.split('/').pop().replace(/_/g, ' ').toUpperCase().slice(0, 5),
+                time: new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', ...hourOptions }),
+                day: new Intl.DateTimeFormat('en-CA', { timeZone: tz, ...dayFormat }),
+            };
+        } catch {
+            return null;                               // unknown zone name
+        }
+    }
+
+    let zones = readZones();
+    let entries = [];
+    let rows = 2;
+    let cells = [];
+    let filled = false;
+
+    // ---------- grid ----------
+    function buildGrid() {
+        entries = zones.map(entryFor).filter(Boolean);
+        rows = Math.max(entries.length, 2);            // the empty message needs two rows
+        root.replaceChildren(...Array.from({ length: rows * COLS }, () => {
+            const card = document.createElement('span');
+            card.className = 'clockChar';
+            const digit = document.createElement('span');
+            digit.className = 'clockDigit';
+            digit.textContent = ' ';
+            card.append(digit);
+            return card;
+        }));
+        cells = Array.from(root.children);
+        filled = false;                                // the next fill is instant
+    }
+
+    function setCell(card, ch, delay) {
+        const digit = card.firstChild;
+        if (digit.textContent === ch) return;
+        if (!filled) { digit.textContent = ch; return; }
+        card.style.animationDelay = delay + 'ms';
+        card.classList.remove('flip');
+        void card.offsetWidth;
+        card.classList.add('flip');
+        setTimeout(() => { digit.textContent = ch; }, delay + 200);   // swap at the flip's midpoint
+    }
+
+    function show(lines) {
+        for (let r = 0; r < rows; r++) {
+            const s = (lines[r] ?? '').slice(0, COLS).padEnd(COLS);
+            for (let c = 0; c < COLS; c++) setCell(cells[r * COLS + c], s[c], c * 30 + r * 15);
+        }
+        filled = true;
+    }
+
+    // ---------- content ----------
+    const dayNumber = (fmt, now) => {
+        const [y, m, d] = fmt.format(now).split('-').map(Number);
+        return Date.UTC(y, m - 1, d);
+    };
+
+    function formatTime(fmt, now) {
+        const p = Object.fromEntries(fmt.formatToParts(now).map((x) => [x.type, x.value]));
+        if (is12Hour) return `${p.hour}:${p.minute}${(p.dayPeriod ?? '')[0] ?? ''}`;   // "3:05P"
+        return `${p.hour.padStart(2, '0')}:${p.minute}`;                                // "15:05"
+    }
+
+    const center = (s) => ' '.repeat(Math.floor((COLS - s.length) / 2)) + s;
+
+    function lines() {
+        if (!entries.length) return [center('TAP TO ADD'), center('A CITY')];
+        const now = new Date();
+        const today = dayNumber(localDay, now);
+        return entries.map((e) => {
+            const diff = Math.round((dayNumber(e.day, now) - today) / 864e5);
+            const tag = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '';
+            return e.label.toUpperCase().slice(0, 5).padEnd(5) + formatTime(e.time, now).padStart(6) + ' ' + tag.padStart(2);
+        });
+    }
+
+    function refresh() {
+        buildGrid();
+        show(lines());
+        fit();
+    }
+
+    // ---------- picker ----------
+    const selects = Array.from({ length: MAX_ROWS }, (_, i) => {
+        const sel = document.createElement('select');
+        sel.setAttribute('aria-label', `City ${i + 1}`);
+        sel.add(new Option('none', ''));
+        sel.add(new Option('This device', 'local'));
+        CITIES.forEach(([, name, tz]) => sel.add(new Option(name, tz)));
+        pickers.append(sel);
+        return sel;
+    });
+
+    root.addEventListener('click', () => {
+        selects.forEach((sel, i) => { sel.value = zones[i] ?? ''; });
+        dialog.showModal();
+    });
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        zones = [...new Set(selects.map((s) => s.value).filter(Boolean))];   // no blanks, no duplicates
+        localStorage.setItem(KEY, JSON.stringify(zones));
+        dialog.close();
+        refresh();
+    });
+    document.getElementById('worldReset')?.addEventListener('click', () => {
+        localStorage.removeItem(KEY);
+        zones = DEFAULTS;
+        dialog.close();
+        refresh();
+    });
+    document.getElementById('worldCancel')?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+
+    // ---------- fit to the box ----------
+    const box = root.parentElement;
+    function fit() {
+        const cs = getComputedStyle(box);
+        const w = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const h = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        const widthEm = COLS * 0.72 + (COLS - 1) * 0.05;
+        const heightEm = rows + (rows - 1) * 0.05;
+        root.style.fontSize = Math.min(w / widthEm, h / heightEm) + 'px';
+    }
+    new ResizeObserver(fit).observe(box);
+
+    refresh();
+    setInterval(() => show(lines()), 1000);
+}

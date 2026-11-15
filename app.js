@@ -1,4 +1,4 @@
-import { gradiantScript, infoScript, plainScript, dateScript, eventScript, phaseScript } from './scripts.js';
+import { gradiantScript, infoScript, plainScript, dateScript, eventScript, phaseScript, worldClockScript } from './scripts.js';
 
 
 function setupChrome() {
@@ -165,7 +165,7 @@ document.addEventListener('visibilitychange', () => {
 setupChrome();
 
 
-[gradiantScript, infoScript, plainScript, dateScript, phaseScript, eventScript].forEach((init) => {
+[gradiantScript, infoScript, plainScript, dateScript, phaseScript, eventScript, worldClockScript].forEach((init) => {
   try {
     init();
   } catch (error) {
