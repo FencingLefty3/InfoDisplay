@@ -30,7 +30,48 @@ h1 {
     justify-content: center;
     flex-wrap: wrap;;       
 }
+.containerD#info {
+    container-type: size;       /* lets #phase read this box's size */
+    width: 100%;                /* or whatever size the box is meant to be */
+    height: 100%;
+    box-sizing: border-box;
+    padding: 4%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
 
+#phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25em;
+    font-size: min(calc(100cqw /7), calc(100cqh / 2.3));
+}
+#calendar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.06em;
+    font-size: min(6.5svw, 20dvh);     /* 16 flaps wide, 4 rows tall */
+}
+.calRow {
+    display: flex;
+    gap: 0.05em;
+}
+.moonRows {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.phaseRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05em;
+}
 .clockChar.word {
     width: 1.43em; 
     height: 0.6em;    
@@ -115,7 +156,7 @@ body {
     scroll-snap-type: x mandatory;
     justify-content: flex-start;
 
-    background: #333;
+    background: #070707;
     color: #fff;
 }
 html {

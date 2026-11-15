@@ -189,6 +189,7 @@ export function plainScript() {
         } else {
             Array.from(time.children).forEach((card, index) => {
                 const digit = card.querySelector(".clockDigit");
+                if (!digit) return;                      // the colon spacer has no digit
 
                 if (digit.textContent !== text[index]) {
                     digit.textContent = text[index];
@@ -256,6 +257,142 @@ export function dateScript() {
 
     update();
     setInterval(update, 1000);
+}
+import { Moon } from 'https://esm.sh/lunarphase-js@2.0.3';
+export function phaseScript() {
+    const FALLBACK = { lat: 0, lon: 0 };      // set your own coordinates for when location is denied
+    const MOON_COLS = 15;                     // "WAXING CRESCENT" is the longest phase name
+    const is12Hour = Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
+
+    const root = document.getElementById('phase');
+    root.replaceChildren();
+    const moonRows = document.createElement('div');
+    const moonTopRow = document.createElement('div');
+    const moonBottomRow = document.createElement('div');
+    const sunRow = document.createElement('div');
+    moonRows.className = 'moonRows';
+    moonTopRow.className = moonBottomRow.className = sunRow.className = 'phaseRow';
+    moonRows.append(moonTopRow, moonBottomRow);
+    root.append(moonRows, sunRow);
+
+    let coords = null;
+    let sun = null;                           // { offset, events: [{ label, iso }] }
+
+    // ---------- content ----------
+    function moonText() {
+        const n = Moon.lunarPhase().toUpperCase();
+        return n === 'NEW' || n === 'FULL' ? `${n} MOON` : n;
+    }
+
+    function formatTime(iso) {                // "2026-11-15T16:30" -> " 4:30P" or "16:30"
+        if (!iso) return is12Hour ? '--:-- ' : '--:--';
+        let [h, m] = iso.slice(11, 16).split(':').map(Number);
+        const mm = String(m).padStart(2, '0');
+        if (!is12Hour) return `${String(h).padStart(2, '0')}:${mm}`;
+        const suffix = h >= 12 ? 'P' : 'A';
+        h = h % 12 || 12;
+        return `${String(h).padStart(2, ' ')}:${mm}${suffix}`;
+    }
+
+    function nextEvent() {
+        if (!sun) return null;
+        // the API's times are local to the place, so compare against the place's own "now"
+        const placeNow = Date.now() + sun.offset * 1000;
+        return sun.events.find((e) => Date.parse(e.iso + 'Z') > placeNow) ?? null;
+    }
+
+    // ---------- rows ----------
+    function moonParts() {
+        const words = moonText().split(' ');
+        const lines = words.length > 1 ? words : [words[0], ''];
+        return lines.map((line) => Array.from(line.slice(0, MOON_COLS), (c) => ({ text: c })));
+    }
+
+    function sunParts() {
+        const ev = nextEvent();
+        return [
+            { text: ev ? ev.label : 'SUN', word: true },
+            ...Array.from(formatTime(ev?.iso), (c) => ({ text: c, colon: c === ':' })),
+        ];
+    }
+
+    function buildCard(part) {
+        if (part.colon) {
+            const colon = document.createElement('span');
+            colon.className = 'clockColon';
+            colon.textContent = ':';
+            return colon;
+        }
+        const card = document.createElement('span');
+        card.className = part.word ? 'clockChar word' : 'clockChar';
+        const digit = document.createElement('span');
+        digit.className = 'clockDigit';
+        digit.textContent = part.text;
+        card.append(digit);
+        return card;
+    }
+
+    function renderRow(el, parts, aria) {
+        el.setAttribute('aria-label', aria);
+        if (el.children.length !== parts.length) {
+            el.replaceChildren(...parts.map(buildCard));
+            return;
+        }
+        Array.from(el.children).forEach((card, i) => {
+            const digit = card.querySelector('.clockDigit');
+            if (!digit || digit.textContent === parts[i].text) return;   // skips the colon and unchanged cells
+            const delay = i * 40;
+            card.style.animationDelay = delay + 'ms';
+            card.classList.remove('flip');
+            void card.offsetWidth;
+            card.classList.add('flip');
+            setTimeout(() => { digit.textContent = parts[i].text; }, delay + 200);   // swap at the flip's midpoint
+        });
+    }
+
+    function render() {
+        const [topParts, bottomParts] = moonParts();
+        renderRow(moonTopRow, topParts, moonText());
+        renderRow(moonBottomRow, bottomParts, '');
+        const ev = nextEvent();
+        renderRow(sunRow, sunParts(), ev ? `${ev.label} ${formatTime(ev.iso).trim()}` : 'sun');
+    }
+
+    // ---------- data ----------
+    async function load() {
+        if (!coords) {
+            try {
+                const pos = await new Promise((res, rej) =>
+                    navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }));
+                coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+            } catch {
+                coords = FALLBACK;
+            }
+        }
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
+                        `&daily=sunrise,sunset&timezone=auto&forecast_days=2`;
+            const data = await (await fetch(url)).json();
+            const d = data.daily;
+            sun = {
+                offset: data.utc_offset_seconds,
+                events: [
+                    { label: 'RISE', iso: d.sunrise[0] },
+                    { label: 'SET',  iso: d.sunset[0] },
+                    { label: 'RISE', iso: d.sunrise[1] },
+                    { label: 'SET',  iso: d.sunset[1] },
+                ],
+            };
+        } catch {
+            sun = null;                       // keep showing dashes
+        }
+        render();
+    }
+
+    render();                                 // moon and dashes appear straight away
+    load();
+    setInterval(load, 3 * 60 * 60 * 1000);    // refetch every few hours
+    setInterval(render, 30 * 1000);           // re-check which event is next, and the moon
 }
 
 export function infoScript() {

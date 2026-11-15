@@ -1,4 +1,4 @@
-import { gradiantScript, infoScript, plainScript, dateScript } from './scripts.js';
+import { gradiantScript, infoScript, plainScript, dateScript, phaseScript } from './scripts.js';
 
 const currentFace = 'info';
 const horizontalScroller = document.body;
@@ -116,6 +116,8 @@ gradiantScript();
 infoScript();
 plainScript();
 dateScript();
+phaseScript();
+
 
 requestAnimationFrame(() => {
   if (Number.isFinite(savedHorizontalPosition)) {
