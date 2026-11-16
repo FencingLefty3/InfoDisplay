@@ -32,6 +32,12 @@ OR
 
 Select the customize button in the bottom corner to customize, `Gradiant Clock`, `Event Complication`, or `World Clock`.
 
+## Notes
+
+Best in landscape orientation.
+
+No account required, settings saved to device.
+
 ## Run Locally
 
 Clone the project
