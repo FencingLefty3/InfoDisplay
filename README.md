@@ -9,7 +9,7 @@ A split flap style, standby inspired AFK/background display.
     - gradiant (color customizable)
     - world clock (customizable)
     - info complications
-    
+
 - Double complication clocks
     - date
     - time
@@ -26,6 +26,11 @@ Scroll up and down for different types of clock faces/complications.
 
 Scroll left and right for double and single panes.
 
+Click on: `event complication` or `world clock` to customize.
+
+OR
+
+Select the customize button in the bottom corner to customize, `Gradiant Clock`, `Event Complication`, or `World Clock`.
 
 ## Run Locally
 
