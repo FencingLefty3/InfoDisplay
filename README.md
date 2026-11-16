@@ -26,17 +26,19 @@ Scroll up and down for different types of clock faces/complications.
 
 Scroll left and right for double and single panes.
 
-Click on: `event complication` or `world clock` to customize.
+Click on: *event complication* or *world clock* to customize.
 
 OR
 
-Select the customize button in the bottom corner to customize, `Gradiant Clock`, `Event Complication`, or `World Clock`.
+Select the customize button in the bottom corner to customize, *Gradiant Clock*, *Event Complication*, or *World Clock*.
 
 ## Notes
 
-Best in landscape orientation.
+- Best in landscape orientation.
 
-No account required, settings saved to device.
+- No account required, settings saved to device.
+
+- 
 
 ## Run Locally
 
